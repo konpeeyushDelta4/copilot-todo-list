@@ -50,20 +50,102 @@ export function App({ view }: AppProps) {
     action.respond("Theme changed to " + theme);
   }, [changeTheme]);
 
+  // Bulk delete all completed (done) todos
+  const bulkDeleteActionRef = useCallback((data: unknown, action: { respond: (message: string) => void }) => {
+    setTodos((prevTodos) => {
+      const remainingTodos = prevTodos.filter(todo => todo.status !== "done");
+      const deletedCount = prevTodos.length - remainingTodos.length;
+      action.respond(`Successfully deleted ${deletedCount} completed tasks.`);
+      return remainingTodos;
+    });
+  }, []);
+
+  // Move low priority tasks from "in_progress" to "done"
+  const moveLowPriorityDoingToDoneActionRef = useCallback((data: unknown, action: { respond: (message: string) => void }) => {
+    setTodos((prevTodos) => {
+      const updatedTodos = prevTodos.map(todo => {
+        if (todo.status === "in_progress" && todo.priority === "low") {
+          return {
+            ...todo,
+            status: "done" as const,
+            updatedAt: new Date()
+          };
+        }
+        return todo;
+      });
+
+      const movedCount = updatedTodos.filter(todo =>
+        todo.status === "done" &&
+        todo.priority === "low" &&
+        prevTodos.some(pt => pt.id === todo.id && pt.status === "in_progress")
+      ).length;
+
+      action.respond(`Moved ${movedCount} low priority tasks from In Progress to Done.`);
+      return updatedTodos;
+    });
+  }, []);
+
+  // Move high priority tasks to "in_progress"
+  const moveHighPriorityToDo = useCallback((data: unknown, action: { respond: (message: string) => void }) => {
+    const actionData = data as ActionData;
+    const args = actionData.action?.tool?.function?.arguments || `{}`;
+    let parsedArgs;
+    try {
+      parsedArgs = JSON.parse(args);
+    } catch {
+      action.respond("Error parsing arguments.");
+      return;
+    }
+
+    const { tag } = parsedArgs;
+
+    setTodos((prevTodos) => {
+      const updatedTodos = prevTodos.map(todo => {
+        if (todo.status === "todo" && todo.priority === "high" &&
+          (!tag || (todo.tags && todo.tags.includes(tag)))) {
+          return {
+            ...todo,
+            status: "in_progress" as const,
+            updatedAt: new Date()
+          };
+        }
+        return todo;
+      });
+
+      const movedCount = updatedTodos.filter(todo =>
+        todo.status === "in_progress" &&
+        todo.priority === "high" &&
+        prevTodos.some(pt => pt.id === todo.id && pt.status === "todo")
+      ).length;
+
+      const tagMessage = tag ? ` with tag "${tag}"` : "";
+      action.respond(`Moved ${movedCount} high priority tasks${tagMessage} from To Do to In Progress.`);
+      return updatedTodos;
+    });
+  }, []);
+
+  const beastModeActionRef = useCallback((data: unknown, action: { respond: (message: string) => void }) => {
+    changeTheme("cyberpunk");
+    action.respond("🔥 Beast mode activated! 🔥");
+  }, []);
+
   // Register the AI action only once when the component mounts
   useEffect(() => {
     aiActions.registerAction("change_theme", themeActionRef);
-
     aiActions.registerAction("bulk_delete", bulkDeleteActionRef);
-
     aiActions.registerAction("move_low_priority_doing_to_done", moveLowPriorityDoingToDoneActionRef);
-
     aiActions.registerAction("move_high_priority_to_do", moveHighPriorityToDo);
+
+    aiActions.registerAction("beast_mode", beastModeActionRef);
 
     return () => {
       aiActions.unregisterAction("change_theme");
+      aiActions.unregisterAction("bulk_delete");
+      aiActions.unregisterAction("move_low_priority_doing_to_done");
+      aiActions.unregisterAction("move_high_priority_to_do");
+      aiActions.unregisterAction("beast_mode");
     };
-  }, [aiActions, themeActionRef]);
+  }, [themeActionRef, bulkDeleteActionRef, moveLowPriorityDoingToDoneActionRef, moveHighPriorityToDo, beastModeActionRef]);
 
 
 
