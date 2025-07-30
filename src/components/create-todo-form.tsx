@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, Clock, Target, Zap } from "lucide-react";
+import { Plus, Clock, Target, Zap, Tag } from "lucide-react";
 import { Todo, Priority, PRIORITY_CONFIG } from "@/types/todo";
 import { cn } from "@/lib/utils";
 
@@ -22,6 +22,7 @@ export function CreateTodoForm({ onCreateTodo, className }: CreateTodoFormProps)
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [priority, setPriority] = useState<Priority>("medium");
+  const [category, setCategory] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -38,12 +39,14 @@ export function CreateTodoForm({ onCreateTodo, className }: CreateTodoFormProps)
       description: description.trim() || undefined,
       priority,
       status: "todo",
+      category: category.trim() || undefined,
     });
 
     // Reset form
     setTitle("");
     setDescription("");
     setPriority("medium");
+    setCategory("");
     setIsSubmitting(false);
     setOpen(false);
   };
@@ -83,6 +86,15 @@ export function CreateTodoForm({ onCreateTodo, className }: CreateTodoFormProps)
               Description
             </Label>
             <Textarea id="description" placeholder="Add more details about this task..." value={description} onChange={(e) => setDescription(e.target.value)} rows={3} className="resize-none" />
+          </div>
+
+          {/* Category */}
+          <div className="space-y-2">
+            <Label htmlFor="category" className="text-sm font-medium flex items-center gap-2">
+              <Tag className="h-4 w-4" />
+              Category
+            </Label>
+            <Input id="category" placeholder="e.g., Feature, Bug, Research..." value={category} onChange={(e) => setCategory(e.target.value)} className="text-base" />
           </div>
 
           {/* Priority Selection */}

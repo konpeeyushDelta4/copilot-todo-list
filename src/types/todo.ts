@@ -12,6 +12,7 @@ export interface Todo {
   dueDate?: Date;
   tags?: string[];
   assignee?: string;
+  category?: string;
 }
 
 export interface Column {
@@ -19,7 +20,6 @@ export interface Column {
   title: string;
   description: string;
   color: string;
-  limit?: number;
 }
 
 export const COLUMNS: Column[] = [

@@ -169,18 +169,29 @@ export function KanbanCard({
         </CardHeader>
 
         <CardContent className="pt-0 space-y-3">
-          {/* Priority Badge */}
+          {/* Priority and Category Badges */}
           <div className="flex items-center justify-between">
-            <Badge 
-              variant="outline" 
-              className={cn(
-                "text-xs px-2 py-0.5",
-                priorityConfig.color,
+            <div className="flex items-center gap-2">
+              <Badge 
+                variant="outline" 
+                className={cn(
+                  "text-xs px-2 py-0.5",
+                  priorityConfig.color,
+                )}
+              >
+                <span className="mr-1">{priorityConfig.icon}</span>
+                {priorityConfig.label}
+              </Badge>
+              
+              {todo.category && (
+                <Badge 
+                  variant="secondary" 
+                  className="text-xs px-2 py-0.5 bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-900 dark:text-blue-100 dark:border-blue-700"
+                >
+                  {todo.category}
+                </Badge>
               )}
-            >
-              <span className="mr-1">{priorityConfig.icon}</span>
-              {priorityConfig.label}
-            </Badge>
+            </div>
             
             {isOverdue && (
               <motion.div

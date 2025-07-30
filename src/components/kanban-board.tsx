@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { DndContext, DragEndEvent, DragOverlay, DragStartEvent, PointerSensor, useSensor, useSensors, closestCorners, useDroppable } from "@dnd-kit/core";
+import { DndContext, DragEndEvent, DragOverlay, DragStartEvent, PointerSensor, useSensor, useSensors, closestCenter, useDroppable } from "@dnd-kit/core";
 import { SortableContext, arrayMove, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -28,9 +28,8 @@ function DroppableColumn({ id, children, isActive }: DroppableColumnProps) {
     <div
       ref={setNodeRef}
       className={cn(
-        "min-h-[400px] p-4 space-y-3 transition-all duration-200",
-        "border-2 border-dashed rounded-lg",
-        isOver || isActive ? "border-blue-400 bg-blue-50/50 dark:bg-blue-950/20" : "border-transparent hover:border-muted-foreground/20"
+        "flex-1 p-4 space-y-3 transition-all duration-200",
+        isOver || isActive ? "bg-blue-50/50 dark:bg-blue-950/20" : ""
       )}
     >
       {children}
@@ -188,31 +187,30 @@ export function KanbanBoard({ todos, onUpdateTodo, onCreateTodo, onDeleteTodo }:
       </div>
 
       {/* Kanban Board */}
-      <DndContext sensors={sensors} collisionDetection={closestCorners} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 h-[calc(100vh-300px)]">
           {COLUMNS.map((column) => (
             <motion.div key={column.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 * COLUMNS.indexOf(column) }} className="flex flex-col">
-              <Card className="flex-1 flex flex-col">
-                <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center justify-between text-sm">
-                    <div className="flex items-center gap-2">
-                      {getColumnIcon(column.id)}
-                      <span>{column.title}</span>
-                      <Badge variant="secondary" className="text-xs">
-                        {todosByColumn[column.id].length}
-                        {column.limit && `/${column.limit}`}
-                      </Badge>
-                    </div>
-                    <Button variant="ghost" size="sm">
-                      <MoreHorizontal className="h-4 w-4" />
-                    </Button>
-                  </CardTitle>
-                  <p className="text-xs text-muted-foreground">{column.description}</p>
-                </CardHeader>
+              <SortableContext items={todosByColumn[column.id].map((todo) => todo.id)} strategy={verticalListSortingStrategy}>
+                <DroppableColumn id={column.id} isActive={!!activeId}>
+                  <Card className="flex-1 flex flex-col h-full">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="flex items-center justify-between text-sm">
+                        <div className="flex items-center gap-2">
+                          {getColumnIcon(column.id)}
+                          <span>{column.title}</span>
+                          <Badge variant="secondary" className="text-xs">
+                            {todosByColumn[column.id].length}
+                          </Badge>
+                        </div>
+                        <Button variant="ghost" size="sm">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </CardTitle>
+                      <p className="text-xs text-muted-foreground">{column.description}</p>
+                    </CardHeader>
 
-                <CardContent className="flex-1 p-0">
-                  <SortableContext items={todosByColumn[column.id].map((todo) => todo.id)} strategy={verticalListSortingStrategy}>
-                    <DroppableColumn id={column.id} isActive={!!activeId}>
+                    <CardContent className="flex-1 p-4 space-y-3">
                       <AnimatePresence mode="popLayout">
                         {todosByColumn[column.id].map((todo) => (
                           <KanbanCard key={todo.id} todo={todo} onUpdate={onUpdateTodo} onDelete={onDeleteTodo} isActive={activeId === todo.id} />
@@ -239,10 +237,10 @@ export function KanbanBoard({ todos, onUpdateTodo, onCreateTodo, onDeleteTodo }:
                           <p className="text-xs text-muted-foreground mt-1 opacity-60">Drag tasks here to update status</p>
                         </motion.div>
                       )}
-                    </DroppableColumn>
-                  </SortableContext>
-                </CardContent>
-              </Card>
+                    </CardContent>
+                  </Card>
+                </DroppableColumn>
+              </SortableContext>
             </motion.div>
           ))}
         </div>
