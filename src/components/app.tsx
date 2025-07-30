@@ -125,7 +125,7 @@ export function App({ view }: AppProps) {
   }, []);
 
   const beastModeActionRef = useCallback((data: unknown, action: { respond: (message: string) => void }) => {
-    changeTheme("cyberpunk");
+    changeTheme("forest");
     action.respond("🔥 Beast mode activated! 🔥");
   }, []);
 

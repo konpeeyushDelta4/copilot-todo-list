@@ -176,7 +176,6 @@ export function KanbanCard({
               className={cn(
                 "text-xs px-2 py-0.5",
                 priorityConfig.color,
-                "dark:" + priorityConfig.darkColor
               )}
             >
               <span className="mr-1">{priorityConfig.icon}</span>
