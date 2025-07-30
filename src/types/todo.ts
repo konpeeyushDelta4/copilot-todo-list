@@ -27,15 +27,13 @@ export const COLUMNS: Column[] = [
     id: "todo",
     title: "To Do",
     description: "Tasks ready to be started",
-    color: "bg-slate-100 border-slate-200",
-    limit: 10
+    color: "bg-slate-100 border-slate-200"
   },
   {
     id: "in_progress",
     title: "In Progress",
     description: "Currently being worked on",
-    color: "bg-blue-50 border-blue-200",
-    limit: 3
+    color: "bg-blue-50 border-blue-200"
   },
   {
     id: "done",

@@ -129,6 +129,11 @@ export function App({ view }: AppProps) {
     action.respond("🔥 Beast mode activated! 🔥");
   }, []);
 
+  const deactivateBeastModeActionRef = useCallback((data: unknown, action: { respond: (message: string) => void }) => {
+    changeTheme("light");
+    action.respond("✨ Beast mode deactivated! Back to normal. ✨");
+  }, []);
+
   // Register the AI action only once when the component mounts
   useEffect(() => {
     aiActions.registerAction("change_theme", themeActionRef);
@@ -137,6 +142,7 @@ export function App({ view }: AppProps) {
     aiActions.registerAction("move_high_priority_to_do", moveHighPriorityToDo);
 
     aiActions.registerAction("beast_mode", beastModeActionRef);
+    aiActions.registerAction("deactivate_beast_mode", deactivateBeastModeActionRef);
 
     return () => {
       aiActions.unregisterAction("change_theme");
@@ -144,8 +150,9 @@ export function App({ view }: AppProps) {
       aiActions.unregisterAction("move_low_priority_doing_to_done");
       aiActions.unregisterAction("move_high_priority_to_do");
       aiActions.unregisterAction("beast_mode");
+      aiActions.unregisterAction("deactivate_beast_mode");
     };
-  }, [themeActionRef, bulkDeleteActionRef, moveLowPriorityDoingToDoneActionRef, moveHighPriorityToDo, beastModeActionRef]);
+  }, []);
 
 
 
