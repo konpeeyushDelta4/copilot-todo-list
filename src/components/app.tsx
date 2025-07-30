@@ -15,6 +15,19 @@ YourGPT.init({
   debug: true,
 });
 
+interface ToolFunction {
+  arguments: string;
+  name: string;
+}
+
+interface ActionData {
+  action: {
+    tool: {
+      function: ToolFunction;
+    };
+  };
+}
+
 interface AppProps {
   view: "list" | "kanban";
 }
@@ -31,17 +44,16 @@ export function App({ view }: AppProps) {
   };
 
   useEffect(() => {
-    aiActions.registerAction("change_theme", async (data, helpers) => {
+    aiActions.registerAction("change_theme", async (data, action) => {
       console.log("change_theme", data);
 
-      const processData: any = data.action?.tool?.function || {};
-      const args = processData.data.action.tool.function.arguments || `{}`;
+      const actionData = data as ActionData;
+      const args = actionData.action?.tool?.function?.arguments || `{}`;
       const theme = JSON.parse(args).theme;
-      
-      console.log("processData--->", processData);
+
       applyTheme(theme);
 
-      helpers.respond("Theme changed to " + theme);
+      action.respond("Theme changed to " + theme);
     });
 
     return () => {
