@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React from "react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -9,61 +9,45 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Palette, Sun, Moon, Waves, Sunset, Trees, Zap } from "lucide-react";
+import { useTheme, themes } from "@/components/theme-provider";
 
-type Theme = "light" | "dark" | "ocean" | "sunset" | "forest" | "cyberpunk";
-
-const themes = [
-  { name: "light", label: "Light", icon: Sun },
-  { name: "dark", label: "Dark", icon: Moon },
-  { name: "ocean", label: "Ocean", icon: Waves },
-  { name: "sunset", label: "Sunset", icon: Sunset },
-  { name: "forest", label: "Forest", icon: Trees },
-  { name: "cyberpunk", label: "Cyberpunk", icon: Zap },
-] as const;
+const themeIcons = {
+  light: { icon: Sun },
+  dark: { icon: Moon },
+  ocean: { icon: Waves },
+  sunset: { icon: Sunset },
+  forest: { icon: Trees },
+  cyberpunk: { icon: Zap },
+};
 
 export function ThemeSwitcher() {
-  const [currentTheme, setCurrentTheme] = useState<Theme>("light");
+  const { currentTheme, changeTheme } = useTheme();
 
-  useEffect(() => {
-    const savedTheme = localStorage.getItem("theme") as Theme;
-    if (savedTheme && themes.find(t => t.name === savedTheme)) {
-      setCurrentTheme(savedTheme);
-      applyTheme(savedTheme);
-    }
-  }, []);
-
-  const applyTheme = (theme: Theme) => {
-    document.documentElement.className = theme === "light" ? "" : theme;
-    localStorage.setItem("theme", theme);
-  };
-
-  const handleThemeChange = (theme: Theme) => {
-    setCurrentTheme(theme);
-    applyTheme(theme);
-  };
-
-  const currentThemeData = themes.find(t => t.name === currentTheme);
-  const CurrentIcon = currentThemeData?.icon || Palette;
+  const currentThemeIcon = themeIcons[currentTheme as keyof typeof themeIcons]?.icon || Palette;
+  const currentThemeLabel = themes.find(t => t.name === currentTheme)?.label || "Theme";
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="outline" size="sm" className="gap-2">
-          <CurrentIcon className="h-4 w-4" />
-          {currentThemeData?.label || "Theme"}
+          {React.createElement(currentThemeIcon, { className: "h-4 w-4" })}
+          {currentThemeLabel}
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        {themes.map(({ name, label, icon: Icon }) => (
-          <DropdownMenuItem
-            key={name}
-            onClick={() => handleThemeChange(name)}
-            className="gap-2"
-          >
-            <Icon className="h-4 w-4" />
-            {label}
-          </DropdownMenuItem>
-        ))}
+        {themes.map((theme) => {
+          const IconComponent = themeIcons[theme.name as keyof typeof themeIcons]?.icon || Palette;
+          return (
+            <DropdownMenuItem
+              key={theme.name}
+              onClick={() => changeTheme(theme.name)}
+              className="gap-2"
+            >
+              {React.createElement(IconComponent, { className: "h-4 w-4" })}
+              {theme.label}
+            </DropdownMenuItem>
+          );
+        })}
       </DropdownMenuContent>
     </DropdownMenu>
   );

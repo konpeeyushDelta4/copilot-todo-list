@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Todo } from "@/types/todo";
 import { Navigation } from "@/components/navigation";
 import { TodoList } from "@/components/todo-app";
 import { KanbanBoard } from "@/components/kanban-board";
 import { YourGPT, useAIActions } from "@yourgpt/widget-web-sdk/react";
+import { useTheme, type Theme } from "@/components/theme-provider";
 
 // Initialize SDK
 YourGPT.init({
@@ -35,31 +36,36 @@ interface AppProps {
 export function App({ view }: AppProps) {
   const currentView = view;
   const [todos, setTodos] = useState<Todo[]>([]);
+  const { changeTheme } = useTheme();
 
   const aiActions = useAIActions();
 
-  const applyTheme = (theme: string) => {
-    document.documentElement.className = theme === "light" ? "" : theme;
-    localStorage.setItem("theme", theme);
-  };
+  // Use callback to prevent infinite re-renders with useEffect
+  const themeActionRef = useCallback((data: unknown, action: { respond: (message: string) => void }) => {
+    const actionData = data as ActionData;
+    const args = actionData.action?.tool?.function?.arguments || `{}`;
+    const theme = JSON.parse(args).theme as Theme;
 
+    changeTheme(theme);
+    action.respond("Theme changed to " + theme);
+  }, [changeTheme]);
+
+  // Register the AI action only once when the component mounts
   useEffect(() => {
-    aiActions.registerAction("change_theme", async (data, action) => {
-      console.log("change_theme", data);
+    aiActions.registerAction("change_theme", themeActionRef);
 
-      const actionData = data as ActionData;
-      const args = actionData.action?.tool?.function?.arguments || `{}`;
-      const theme = JSON.parse(args).theme;
+    aiActions.registerAction("bulk_delete", bulkDeleteActionRef);
 
-      applyTheme(theme);
+    aiActions.registerAction("move_low_priority_doing_to_done", moveLowPriorityDoingToDoneActionRef);
 
-      action.respond("Theme changed to " + theme);
-    });
+    aiActions.registerAction("move_high_priority_to_do", moveHighPriorityToDo);
 
     return () => {
       aiActions.unregisterAction("change_theme");
     };
-  }, []);
+  }, [aiActions, themeActionRef]);
+
+
 
   // Load todos from localStorage on mount
   useEffect(() => {
