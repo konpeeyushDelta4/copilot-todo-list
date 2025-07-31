@@ -180,9 +180,9 @@ export function App({ view }: AppProps) {
       return updatedTodos;
     });
     action.respond(`Moved ${movedCount} task${movedCount !== 1 ? 's' : ''}${filterText} from ${fromText} to ${toText}.`);
-  }, 
-  
-  []);
+  },
+
+    []);
 
   const beastModeActionRef = useCallback((data: unknown, action: { respond: (message: string) => void }) => {
     changeTheme("forest");
@@ -193,6 +193,35 @@ export function App({ view }: AppProps) {
     changeTheme("light");
     action.respond("✨ Beast mode deactivated! Back to normal. ✨");
   }, []);
+
+  // AI Action to read all todos from each board
+  const readTodosActionRef = useCallback((data: unknown, action: { respond: (message: string) => void }) => {
+    // Organize todos by board/status
+    const todosByBoard = {
+      todo: todos.filter(todo => todo.status === "todo"),
+      in_progress: todos.filter(todo => todo.status === "in_progress"),
+      done: todos.filter(todo => todo.status === "done")
+    };
+
+    const response = `📊 All Todo Boards:\n\n` +
+      `🟡 TO DO (${todosByBoard.todo.length} tasks):\n` +
+      (todosByBoard.todo.length === 0 ? "   No pending tasks\n" :
+        todosByBoard.todo.map((todo, index) =>
+          `   ${index + 1}. ${todo.title}${todo.category ? ` [${todo.category}]` : ""}`
+        ).join("\n") + "\n") +
+      `\n🔵 IN PROGRESS (${todosByBoard.in_progress.length} tasks):\n` +
+      (todosByBoard.in_progress.length === 0 ? "   No tasks in progress\n" :
+        todosByBoard.in_progress.map((todo, index) =>
+          `   ${index + 1}. ${todo.title}${todo.category ? ` [${todo.category}]` : ""}`
+        ).join("\n") + "\n") +
+      `\n🟢 DONE (${todosByBoard.done.length} tasks):\n` +
+      (todosByBoard.done.length === 0 ? "   No completed tasks\n" :
+        todosByBoard.done.map((todo, index) =>
+          `   ${index + 1}. ${todo.title}${todo.category ? ` [${todo.category}]` : ""}`
+        ).join("\n") + "\n");
+
+    action.respond(response);
+  }, [todos]);
 
   // Bulk create tasks function
   const createBulkTasksActionRef = useCallback((data: unknown, action: { respond: (message: string) => void }) => {
@@ -352,6 +381,7 @@ export function App({ view }: AppProps) {
     aiActions.registerAction("create_bulk_tasks", createBulkTasksActionRef);
     aiActions.registerAction("beast_mode", beastModeActionRef);
     aiActions.registerAction("deactivate_beast_mode", deactivateBeastModeActionRef);
+    aiActions.registerAction("read_todos", readTodosActionRef);
 
     return () => {
       aiActions.unregisterAction("change_theme");
@@ -360,6 +390,7 @@ export function App({ view }: AppProps) {
       aiActions.unregisterAction("create_bulk_tasks");
       aiActions.unregisterAction("beast_mode");
       aiActions.unregisterAction("deactivate_beast_mode");
+      aiActions.unregisterAction("read_todos");
     };
   }, []);
 
