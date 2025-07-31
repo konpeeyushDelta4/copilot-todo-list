@@ -1,5 +1,6 @@
 # Copilot Todo List
 
+
 ## Prerequisites
 
 ### YourGPT Widget Integration
@@ -27,6 +28,9 @@ YourGPT.init({
 
 
 ### Bulk Delete (`bulk_delete`)
+
+![Bulk Delete](https://github.com/user-attachments/assets/4df1ad5d-933c-439a-9ac2-3dd9a52d5925)
+
 - Deletes multiple todos based on specified criteria
 - Supports filtering by status, category, priority, and tags
 - Defaults to deleting only completed tasks if no filters provided
@@ -50,6 +54,8 @@ if (!status && !category && !priority && !tag) {
 ```
 
 ### Move Todos (`move_todos`)
+![Move Todos](https://github.com/user-attachments/assets/3e4c46a4-5f43-4b00-bdcc-c518b2f5d93c)
+
 - Moves tasks between different status boards
 - Supports bulk movement based on filters
 - Updates task timestamps automatically
@@ -85,6 +91,8 @@ setTodos((prevTodos) => {
 ```
 
 ### Create Bulk Tasks (`create_bulk_tasks`)
+![Create Bulk Tasks](https://github.com/user-attachments/assets/6d648857-d974-4a8b-98ea-f093c288c7df)
+
 - Creates multiple tasks at once
 - Supports two modes:
   1. Range-based creation (from-to numbers)
@@ -133,6 +141,8 @@ if (csv) {
 ```
 
 ### Beast Mode (`beast_mode`)
+![Beast Mode](https://github.com/user-attachments/assets/68124d85-305a-4c50-ba45-da1168d38ed2)
+
 - Activates special "forest" theme
 - Provides visual feedback with emojis
 - No additional parameters required
