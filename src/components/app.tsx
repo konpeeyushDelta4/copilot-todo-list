@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
-import { Todo } from "@/types/todo";
+import { Todo, Status, Priority } from "@/types/todo";
 import { Navigation } from "@/components/navigation";
 import { TodoList } from "@/components/todo-app";
 import { KanbanBoard } from "@/components/kanban-board";
@@ -12,7 +12,7 @@ import { useTheme, type Theme } from "@/components/theme-provider";
 // Initialize SDK
 YourGPT.init({
   widgetId: "271f1c55-4a82-4c7f-9634-762078763943",
-  endpoint: "https://widget.yourgpt.ai",
+  endpoint: "https://dev-widget.yourgpt.ai",
   debug: true,
 });
 
@@ -50,43 +50,8 @@ export function App({ view }: AppProps) {
     action.respond("Theme changed to " + theme);
   }, [changeTheme]);
 
-  // Bulk delete all completed (done) todos
+  // Universal bulk delete function for todos based on status, category, and priority
   const bulkDeleteActionRef = useCallback((data: unknown, action: { respond: (message: string) => void }) => {
-    setTodos((prevTodos) => {
-      const remainingTodos = prevTodos.filter(todo => todo.status !== "done");
-      const deletedCount = prevTodos.length - remainingTodos.length;
-      action.respond(`Successfully deleted ${deletedCount} completed tasks.`);
-      return remainingTodos;
-    });
-  }, []);
-
-  // Move low priority tasks from "in_progress" to "done"
-  const moveLowPriorityDoingToDoneActionRef = useCallback((data: unknown, action: { respond: (message: string) => void }) => {
-    setTodos((prevTodos) => {
-      const updatedTodos = prevTodos.map(todo => {
-        if (todo.status === "in_progress" && todo.priority === "low") {
-          return {
-            ...todo,
-            status: "done" as const,
-            updatedAt: new Date()
-          };
-        }
-        return todo;
-      });
-
-      const movedCount = updatedTodos.filter(todo =>
-        todo.status === "done" &&
-        todo.priority === "low" &&
-        prevTodos.some(pt => pt.id === todo.id && pt.status === "in_progress")
-      ).length;
-
-      action.respond(`Moved ${movedCount} low priority tasks from In Progress to Done.`);
-      return updatedTodos;
-    });
-  }, []);
-
-  // Move high priority tasks to "in_progress"
-  const moveHighPriorityToDo = useCallback((data: unknown, action: { respond: (message: string) => void }) => {
     const actionData = data as ActionData;
     const args = actionData.action?.tool?.function?.arguments || `{}`;
     let parsedArgs;
@@ -97,29 +62,115 @@ export function App({ view }: AppProps) {
       return;
     }
 
-    const { tag } = parsedArgs;
+    const { status, category, priority, tag } = parsedArgs;
+
+    // If no filters provided, default to deleting only completed tasks for safety
+    if (!status && !category && !priority && !tag) {
+      setTodos((prevTodos) => {
+        const remainingTodos = prevTodos.filter(todo => todo.status !== "done");
+        const deletedCount = prevTodos.length - remainingTodos.length;
+        action.respond(`Successfully deleted ${deletedCount} completed tasks.`);
+        return remainingTodos;
+      });
+      return;
+    }
+
+    setTodos((prevTodos) => {
+      const remainingTodos = prevTodos.filter(todo => {
+        // Check if todo matches any of the deletion criteria
+        const matchesStatus = !status || todo.status === status;
+        const matchesCategory = !category || todo.category === category;
+        const matchesPriority = !priority || todo.priority === priority;
+        const matchesTag = !tag || (todo.tags && todo.tags.includes(tag));
+
+        // Keep todos that DON'T match all the specified criteria
+        return !(matchesStatus && matchesCategory && matchesPriority && matchesTag);
+      });
+
+      const deletedCount = prevTodos.length - remainingTodos.length;
+
+      // Build response message
+      const filters = [];
+      if (status) filters.push(`status "${status.replace("_", " ")}"`);
+      if (category) filters.push(`category "${category}"`);
+      if (priority) filters.push(`${priority} priority`);
+      if (tag) filters.push(`tag "${tag}"`);
+
+      const filterText = filters.length > 0 ? ` with ${filters.join(", ")}` : "";
+
+      action.respond(`Successfully deleted ${deletedCount} task${deletedCount !== 1 ? 's' : ''}${filterText}.`);
+      return remainingTodos;
+    });
+  }, []);
+
+  // Universal move function for todos based on category, priority, and status
+  const moveTodosActionRef = useCallback((data: unknown, action: { respond: (message: string) => void }) => {
+    const actionData = data as ActionData;
+    const args = actionData.action?.tool?.function?.arguments || `{}`;
+    let parsedArgs;
+    try {
+      parsedArgs = JSON.parse(args);
+    } catch {
+      action.respond("Error parsing arguments.");
+      return;
+    }
+
+    const { category, priority, from, to, tag } = parsedArgs;
+
+    // Validate required parameters
+    if (!from || !to) {
+      action.respond("Error: 'from' and 'to' status are required.");
+      return;
+    }
+
+    // Validate status values
+    const validStatuses = ["todo", "in_progress", "done"];
+    if (!validStatuses.includes(from) || !validStatuses.includes(to)) {
+      action.respond("Error: Invalid status. Valid statuses are: todo, in_progress, done");
+      return;
+    }
 
     setTodos((prevTodos) => {
       const updatedTodos = prevTodos.map(todo => {
-        if (todo.status === "todo" && todo.priority === "high" &&
-          (!tag || (todo.tags && todo.tags.includes(tag)))) {
+        // Check if todo matches all the criteria
+        const matchesStatus = todo.status === from;
+        const matchesCategory = !category || todo.category === category;
+        const matchesPriority = !priority || todo.priority === priority;
+        const matchesTag = !tag || (todo.tags && todo.tags.includes(tag));
+
+        if (matchesStatus && matchesCategory && matchesPriority && matchesTag) {
           return {
             ...todo,
-            status: "in_progress" as const,
+            status: to as Status,
             updatedAt: new Date()
           };
         }
         return todo;
       });
 
+      // Count moved todos
       const movedCount = updatedTodos.filter(todo =>
-        todo.status === "in_progress" &&
-        todo.priority === "high" &&
-        prevTodos.some(pt => pt.id === todo.id && pt.status === "todo")
+        todo.status === to &&
+        prevTodos.some(pt =>
+          pt.id === todo.id &&
+          pt.status === from &&
+          (!category || pt.category === category) &&
+          (!priority || pt.priority === priority) &&
+          (!tag || (pt.tags && pt.tags.includes(tag)))
+        )
       ).length;
 
-      const tagMessage = tag ? ` with tag "${tag}"` : "";
-      action.respond(`Moved ${movedCount} high priority tasks${tagMessage} from To Do to In Progress.`);
+      // Build response message
+      const filters = [];
+      if (category) filters.push(`category "${category}"`);
+      if (priority) filters.push(`${priority} priority`);
+      if (tag) filters.push(`tag "${tag}"`);
+
+      const filterText = filters.length > 0 ? ` with ${filters.join(", ")}` : "";
+      const fromText = from.replace("_", " ");
+      const toText = to.replace("_", " ");
+
+      action.respond(`Moved ${movedCount} task${movedCount !== 1 ? 's' : ''}${filterText} from ${fromText} to ${toText}.`);
       return updatedTodos;
     });
   }, []);
@@ -127,28 +178,177 @@ export function App({ view }: AppProps) {
   const beastModeActionRef = useCallback((data: unknown, action: { respond: (message: string) => void }) => {
     changeTheme("forest");
     action.respond("🔥 Beast mode activated! 🔥");
-  }, []);
+  }, [changeTheme]);
 
   const deactivateBeastModeActionRef = useCallback((data: unknown, action: { respond: (message: string) => void }) => {
     changeTheme("light");
     action.respond("✨ Beast mode deactivated! Back to normal. ✨");
   }, []);
 
+  // Bulk create tasks function
+  const createBulkTasksActionRef = useCallback((data: unknown, action: { respond: (message: string) => void }) => {
+    const actionData = data as ActionData;
+    const args = actionData.action?.tool?.function?.arguments || `{}`;
+    let parsedArgs;
+    try {
+      parsedArgs = JSON.parse(args);
+    } catch {
+      action.respond("Error parsing arguments.");
+      return;
+    }
+
+    const { from, to, category, priority, tag, csv } = parsedArgs;
+
+    // Function to parse CSV data
+    const parseCSV = (csvData: string): { category: string; priority: string; title: string }[] => {
+      const lines = csvData.trim().split('\n');
+      const rows = [];
+
+      // Skip header row and process data
+      for (let i = 1; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (!line) continue;
+
+        // Handle CSV parsing with potential commas in task descriptions
+        // Split by comma but be smart about it
+        const firstCommaIndex = line.indexOf(',');
+        const secondCommaIndex = line.indexOf(',', firstCommaIndex + 1);
+
+        if (firstCommaIndex !== -1 && secondCommaIndex !== -1) {
+          const category = line.substring(0, firstCommaIndex).trim();
+          const priority = line.substring(firstCommaIndex + 1, secondCommaIndex).trim().toLowerCase();
+          const title = line.substring(secondCommaIndex + 1).trim();
+
+          rows.push({
+            category,
+            priority,
+            title
+          });
+        }
+      }
+      return rows;
+    };
+
+    const tasks: Todo[] = [];
+    const currentDate = new Date();
+
+    // Check if CSV data is provided
+    if (csv) {
+      try {
+        const csvRows = parseCSV(csv);
+
+        if (csvRows.length === 0) {
+          action.respond("Error: No valid rows found in CSV data.");
+          return;
+        }
+
+        // Create tasks from CSV data
+        csvRows.forEach((row, index) => {
+          // Validate and normalize priority
+          let taskPriority: Priority = "medium";
+          if (["low", "medium", "high"].includes(row.priority)) {
+            taskPriority = row.priority as Priority;
+          }
+
+          const newTask: Todo = {
+            id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}-${index}`,
+            title: row.title,
+            priority: taskPriority,
+            status: "todo",
+            createdAt: new Date(currentDate.getTime() + index), // Slightly different timestamps
+            updatedAt: new Date(currentDate.getTime() + index),
+            category: row.category || undefined,
+            tags: tag ? [tag] : undefined
+          };
+
+          tasks.push(newTask);
+        });
+
+        // Add all tasks to the todo list
+        setTodos(prevTodos => [...tasks, ...prevTodos]);
+
+        // Build response message for CSV import
+        const taskCount = tasks.length;
+        const categories = [...new Set(tasks.map(t => t.category).filter(Boolean))];
+        const priorities = [...new Set(tasks.map(t => t.priority))];
+
+        action.respond(
+          `Successfully created ${taskCount} task${taskCount !== 1 ? 's' : ''} from CSV data. ` +
+          `Categories: ${categories.join(', ')}. ` +
+          `Priorities: ${priorities.join(', ')}.`
+        );
+        return;
+
+      } catch {
+        action.respond("Error parsing CSV data. Please check the format.");
+        return;
+      }
+    }
+
+    // Original functionality for range-based task creation
+    // Validate required parameters for range mode
+    if (!from || !to) {
+      action.respond("Error: Either provide 'csv' data for CSV import, or 'from' and 'to' parameters for range-based task creation.");
+      return;
+    }
+
+    // Validate priority if provided
+    if (priority && !["low", "medium", "high"].includes(priority)) {
+      action.respond("Error: Invalid priority. Valid priorities are: low, medium, high");
+      return;
+    }
+
+    // Create a task for each item in the range
+    const fromNum = parseInt(from);
+    const toNum = parseInt(to);
+
+    if (isNaN(fromNum) || isNaN(toNum)) {
+      action.respond("Error: 'from' and 'to' must be valid numbers.");
+      return;
+    }
+
+    for (let i = fromNum; i <= toNum; i++) {
+      const newTask: Todo = {
+        id: `${Date.now()}-${i}`,
+        title: `Task ${i}`,
+        priority: (priority as Priority) || "medium",
+        status: "todo",
+        createdAt: currentDate,
+        updatedAt: currentDate,
+        category: category || undefined,
+        tags: tag ? [tag] : undefined
+      };
+      tasks.push(newTask);
+    }
+
+    // Add all tasks to the todo list
+    setTodos(prevTodos => [...tasks, ...prevTodos]);
+
+    // Build response message
+    const taskCount = tasks.length;
+    const filters = [];
+    if (category) filters.push(`category "${category}"`);
+    if (priority) filters.push(`${priority} priority`);
+    if (tag) filters.push(`tag "${tag}"`);
+
+    const filterText = filters.length > 0 ? ` with ${filters.join(", ")}` : "";
+    action.respond(`Successfully created ${taskCount} task${taskCount !== 1 ? 's' : ''}${filterText}.`);
+  }, []);
+
   // Register the AI action only once when the component mounts
   useEffect(() => {
     aiActions.registerAction("change_theme", themeActionRef);
     aiActions.registerAction("bulk_delete", bulkDeleteActionRef);
-    aiActions.registerAction("move_low_priority_doing_to_done", moveLowPriorityDoingToDoneActionRef);
-    aiActions.registerAction("move_high_priority_to_do", moveHighPriorityToDo);
-
+    aiActions.registerAction("move_todos", moveTodosActionRef);
+    aiActions.registerAction("create_bulk_tasks", createBulkTasksActionRef);
     aiActions.registerAction("beast_mode", beastModeActionRef);
     aiActions.registerAction("deactivate_beast_mode", deactivateBeastModeActionRef);
 
     return () => {
       aiActions.unregisterAction("change_theme");
       aiActions.unregisterAction("bulk_delete");
-      aiActions.unregisterAction("move_low_priority_doing_to_done");
-      aiActions.unregisterAction("move_high_priority_to_do");
+      aiActions.unregisterAction("move_todos");
+      aiActions.unregisterAction("create_bulk_tasks");
       aiActions.unregisterAction("beast_mode");
       aiActions.unregisterAction("deactivate_beast_mode");
     };
