@@ -75,6 +75,9 @@ export function App({ view }: AppProps) {
       return;
     }
 
+    let deletedCount = 0;
+    let filterText = "";
+
     setTodos((prevTodos) => {
       const remainingTodos = prevTodos.filter(todo => {
         // Check if todo matches any of the deletion criteria
@@ -87,7 +90,7 @@ export function App({ view }: AppProps) {
         return !(matchesStatus && matchesCategory && matchesPriority && matchesTag);
       });
 
-      const deletedCount = prevTodos.length - remainingTodos.length;
+      deletedCount = prevTodos.length - remainingTodos.length;
 
       // Build response message
       const filters = [];
@@ -96,11 +99,11 @@ export function App({ view }: AppProps) {
       if (priority) filters.push(`${priority} priority`);
       if (tag) filters.push(`tag "${tag}"`);
 
-      const filterText = filters.length > 0 ? ` with ${filters.join(", ")}` : "";
+      filterText = filters.length > 0 ? ` with ${filters.join(", ")}` : "";
 
-      action.respond(`Successfully deleted ${deletedCount} task${deletedCount !== 1 ? 's' : ''}${filterText}.`);
       return remainingTodos;
     });
+    action.respond(`Successfully deleted ${deletedCount} task${deletedCount !== 1 ? 's' : ''}${filterText}.`);
   }, []);
 
   // Universal move function for todos based on category, priority, and status
@@ -130,6 +133,11 @@ export function App({ view }: AppProps) {
       return;
     }
 
+    let filterText = "";
+    let fromText = ''
+    let toText = ''
+    let movedCount = 0
+
     setTodos((prevTodos) => {
       const updatedTodos = prevTodos.map(todo => {
         // Check if todo matches all the criteria
@@ -149,7 +157,7 @@ export function App({ view }: AppProps) {
       });
 
       // Count moved todos
-      const movedCount = updatedTodos.filter(todo =>
+      movedCount = updatedTodos.filter(todo =>
         todo.status === to &&
         prevTodos.some(pt =>
           pt.id === todo.id &&
@@ -165,15 +173,16 @@ export function App({ view }: AppProps) {
       if (category) filters.push(`category "${category}"`);
       if (priority) filters.push(`${priority} priority`);
       if (tag) filters.push(`tag "${tag}"`);
+      filterText = filters.length > 0 ? ` with ${filters.join(", ")}` : "";
+      fromText = from.replace("_", " ");
+      toText = to.replace("_", " ");
 
-      const filterText = filters.length > 0 ? ` with ${filters.join(", ")}` : "";
-      const fromText = from.replace("_", " ");
-      const toText = to.replace("_", " ");
-
-      action.respond(`Moved ${movedCount} task${movedCount !== 1 ? 's' : ''}${filterText} from ${fromText} to ${toText}.`);
       return updatedTodos;
     });
-  }, []);
+    action.respond(`Moved ${movedCount} task${movedCount !== 1 ? 's' : ''}${filterText} from ${fromText} to ${toText}.`);
+  }, 
+  
+  []);
 
   const beastModeActionRef = useCallback((data: unknown, action: { respond: (message: string) => void }) => {
     changeTheme("forest");

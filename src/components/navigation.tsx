@@ -58,7 +58,7 @@ export function Navigation({ currentView }: NavigationProps) {
 
         <div className="flex items-center gap-4">
           {/* Theme Switcher */}
-          <ThemeSwitcher />
+          {/* <ThemeSwitcher /> */}
         </div>
       </div>
     </header>
