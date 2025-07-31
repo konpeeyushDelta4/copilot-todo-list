@@ -191,12 +191,15 @@ Here are some recommended next steps to enhance your Copilot Todo List applicati
 
 ### Integration with YourGPT Dashboard
 
-- Create custom AI actions in YourGPT dashboard 
+- Create custom AI actions in YourGPT dashboard
+  
+https://github.com/user-attachments/assets/10f6ddde-f721-4f53-a54f-727e91e53d46
 
 ### Choose your best suited model for your application
 
 - Choose the best model from a wide variety of models
 
+<img width="1904" height="962" alt="CleanShot 2025-07-31 at 16 44 16" src="https://github.com/user-attachments/assets/b90b2285-ac0d-48dd-a843-aedb42c3b551" />
 
 ## About
 
